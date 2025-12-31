@@ -35,7 +35,7 @@ Because the project uses Webcam API and ES Modules, it must be served over a loc
     Clone the Repository:
     Bash
 
-git clone https://github.com/your-username/3d-gesture-particles.git
+git clone https://github.com/ishitapd/3d-gesture-particles.git
 
 Run with Local Server:
 
@@ -64,8 +64,7 @@ This project demonstrates proficiency in several advanced domains:
 
 An immersive, real-time **3D Particle System** that responds to human hand gestures. This project bridges the gap between **Computer Vision** and **High-Performance Web Graphics**.
 
-![Project Demo](https://github.com/your-username/your-repo-name/blob/main/assets/demo.gif?raw=true)
-*Note: Replace this link with a GIF of your project in action!*
+
 
 ## 🚀 Features
 
@@ -97,9 +96,3 @@ The system uses parametric equations to transform point coordinates in real-time
 
 
 ---
-
-## 💻 How to Run
-
-1. **Clone the Repository:**
-   ```bash
-   git clone [https://github.com/your-username/aetherflow.git](https://github.com/your-username/aetherflow.git)
