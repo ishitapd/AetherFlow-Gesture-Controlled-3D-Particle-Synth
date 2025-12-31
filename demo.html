@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>3D Gesture Universe</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; font-family: sans-serif; }
+        #ui { position: absolute; top: 20px; left: 20px; color: #00ffcc; z-index: 10; pointer-events: none; text-shadow: 0 0 5px #000; }
+        #webcam { position: absolute; bottom: 10px; right: 10px; width: 180px; transform: scaleX(-1); border: 1px solid #444; border-radius: 8px; }
+        .gesture-label { font-weight: bold; color: white; }
+    </style>
+</head>
+<body>
+
+<div id="ui">
+    <h2>3D GESTURE PARTICLES</h2>
+    <p>🖐 <span class="gesture-label">Open Palm:</span> Fireworks / Reset</p>
+    <p>👌 <span class="gesture-label">Pinch:</span> Morph to Heart</p>
+    <p>✌ <span class="gesture-label">Victory (2):</span> Morph to Saturn</p>
+    <p>🤟 <span class="gesture-label">3 Fingers:</span> Morph to Flower</p>
+</div>
+<video id="webcam" autoplay playsinline></video>
+
+<script type="importmap">
+    { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+
+<script type="module">
+    import * as THREE from 'three';
+
+    // --- Configuration ---
+    const count = 10000;
+    let scene, camera, renderer, material, points;
+    let currentTemplate = 0; // 0:Random, 1:Heart, 2:Saturn, 3:Flower
+    let targetScale = 1.0;
+
+    // --- 1. Init Three.js ---
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+    camera.position.z = 30;
+
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // --- 2. Geometry & Custom Shader ---
+    const geometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(count * 3);
+    const randoms = new Float32Array(count * 3);
+
+    for (let i = 0; i < count; i++) {
+        randoms[i*3] = Math.random();
+        randoms[i*3+1] = Math.random();
+        randoms[i*3+2] = Math.random();
+    }
+
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute('aRandom', new THREE.BufferAttribute(randoms, 3));
+
+    material = new THREE.ShaderMaterial({
+        uniforms: {
+            uTime: { value: 0 },
+            uTemplate: { value: 0 }, // 0=Random, 1=Heart, 2=Saturn, 3=Flower
+            uScale: { value: 1.0 },
+            uColor: { value: new THREE.Color(0x00ffff) }
+        },
+        vertexShader: `
+            uniform float uTime;
+            uniform float uTemplate;
+            uniform float uScale;
+            attribute vec3 aRandom;
+            varying vec3 vColor;
+            
+            void main() {
+                vec3 pos = vec3(0.0);
+                float t = uTime * 0.5;
+                
+                if (uTemplate < 0.5) { // Fireworks / Random
+                    pos = (aRandom - 0.5) * 40.0 * (1.0 + sin(uTime)*0.2);
+                } 
+                else if (uTemplate < 1.5) { // Heart
+                    float p = aRandom.x * 6.283;
+                    pos.x = 16.0 * pow(sin(p), 3.0);
+                    pos.y = 13.0 * cos(p) - 5.0 * cos(2.0*p) - 2.0 * cos(3.0*p) - cos(4.0*p);
+                    pos.z = (aRandom.z - 0.5) * 5.0;
+                    pos *= 0.8;
+                }
+                else if (uTemplate < 2.5) { // Saturn
+                    float angle = aRandom.x * 6.283;
+                    float r = (aRandom.y > 0.5) ? 15.0 + aRandom.z * 5.0 : aRandom.z * 7.0;
+                    pos.x = cos(angle) * r;
+                    pos.y = sin(angle) * (aRandom.y > 0.5 ? 2.0 : r);
+                    pos.z = sin(angle) * (aRandom.y > 0.5 ? 10.0 : 2.0);
+                }
+                else { // Flower
+                    float angle = aRandom.x * 6.283;
+                    float r = 10.0 + 5.0 * sin(angle * 5.0 + t);
+                    pos.x = cos(angle) * r;
+                    pos.y = sin(angle) * r;
+                    pos.z = aRandom.z * 5.0;
+                }
+
+                vec4 mvPosition = modelViewMatrix * vec4(pos * uScale, 1.0);
+                gl_PointSize = 4.0 * (20.0 / -mvPosition.z);
+                gl_Position = projectionMatrix * mvPosition;
+                vColor = abs(normalize(pos));
+            }
+        `,
+        fragmentShader: `
+            varying vec3 vColor;
+            void main() {
+                if (length(gl_PointCoord - 0.5) > 0.5) discard;
+                gl_FragColor = vec4(vColor + 0.3, 1.0);
+            }
+        `,
+        transparent: true,
+        blending: THREE.AdditiveBlending
+    });
+
+    points = new THREE.Points(geometry, material);
+    scene.add(points);
+
+    // --- 3. Hand Tracking Logic ---
+    const videoElement = document.getElementById('webcam');
+    const hands = new Hands({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`});
+    
+    hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.6 });
+
+    hands.onResults((results) => {
+        if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+            const hand = results.multiHandLandmarks[0];
+            
+            // Interaction: Follow Hand
+            points.position.x = (hand[9].x - 0.5) * -40;
+            points.position.y = (hand[9].y - 0.5) * -30;
+
+            // Gesture Detection
+            const isFingersUp = (i) => hand[i].y < hand[i-2].y;
+            const thumbIndexDist = Math.hypot(hand[4].x-hand[8].x, hand[4].y-hand[8].y);
+
+            if (thumbIndexDist < 0.04) {
+                currentTemplate = 1; // Pinch -> Heart
+            } else if (isFingersUp(8) && isFingersUp(12) && !isFingersUp(16)) {
+                currentTemplate = 2; // Victory -> Saturn
+            } else if (isFingersUp(8) && isFingersUp(12) && isFingersUp(16) && !isFingersUp(20)) {
+                currentTemplate = 3; // 3 Fingers -> Flower
+            } else {
+                currentTemplate = 0; // Open Palm -> Reset/Explode
+            }
+        }
+    });
+
+    const cameraProc = new Camera(videoElement, {
+        onFrame: async () => { await hands.send({image: videoElement}); },
+        width: 640, height: 480
+    });
+    cameraProc.start();
+
+    // --- 4. Animation Loop ---
+    function animate() {
+        requestAnimationFrame(animate);
+        material.uniforms.uTime.value += 0.05;
+        
+        // Smoothly lerp the template value for morph effect
+        material.uniforms.uTemplate.value += (currentTemplate - material.uniforms.uTemplate.value) * 0.1;
+        
+        points.rotation.y += 0.005;
+        renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+</script>
+</body>
+</html>
