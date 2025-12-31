@@ -59,3 +59,47 @@ This project demonstrates proficiency in several advanced domains:
     Gesture Logic: Implementing Euclidean distance and landmark state checking to define user intent.
 
     Performance Optimization: Using BufferGeometry and ShaderMaterial to maintain high frame rates while managing thousands of individual objects.
+
+    # ✨ AetherFlow: 3D Gesture Particle System
+
+An immersive, real-time **3D Particle System** that responds to human hand gestures. This project bridges the gap between **Computer Vision** and **High-Performance Web Graphics**.
+
+![Project Demo](https://github.com/your-username/your-repo-name/blob/main/assets/demo.gif?raw=true)
+*Note: Replace this link with a GIF of your project in action!*
+
+## 🚀 Features
+
+* **Real-time Hand Tracking:** Leverages **MediaPipe Hands** to track 21 3D landmarks at 60 FPS.
+
+
+* **GPU-Accelerated Morphing:** Uses custom **GLSL Shaders** to transition 10,000+ particles smoothly.
+* **Gesture-Based Interaction:**
+    * **Pinch (Thumb + Index):** Morphs particles into a glowing **Heart**.
+    * **Victory Sign (2 Fingers):** Morphs particles into **Saturn** with its rings.
+    * **Three-Finger Spread:** Morphs particles into a 3D **Flower**.
+    * **Open Palm:** Triggers a **Fireworks** explosion.
+
+## 🛠️ Tech Stack
+
+| Technology | Usage |
+| :--- | :--- |
+| **Three.js** | 3D Rendering & Scene Management |
+| **MediaPipe** | ML-based Hand Landmark Detection |
+| **GLSL** | High-performance Vertex/Fragment Shaders |
+| **JavaScript** | Gesture Heuristics & ES Modules |
+
+---
+
+## 📸 Visualizing the Math
+
+The system uses parametric equations to transform point coordinates in real-time. Below is a conceptual view of how the point cloud transitions:
+
+
+
+---
+
+## 💻 How to Run
+
+1. **Clone the Repository:**
+   ```bash
+   git clone [https://github.com/your-username/aetherflow.git](https://github.com/your-username/aetherflow.git)
